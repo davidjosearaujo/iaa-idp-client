@@ -1,0 +1,22 @@
+name: "Home Banking"
+client_id: aaaaaaaaaaaaaaaaaaaaaaaa
+client_secret: BkcHH9B4CX0IdrJwofdMAIf0gMoPjdykvPzINW1gPZzDxtHt
+uri: http://127.0.0.1:5005/
+redirect_uris: 
+  - http://127.0.0.1:5005
+auth:
+  # authentication steps
+  levels:
+    - password
+
+  # authentication step
+  limit-condition:
+    key: login
+    limit: 20
+    behavior: hotp
+
+token_lifetime: 600 # seconds (10 minutes)
+authorization:
+  - 1 # access accounts
+  - 2 # access loans
+  - 3 # access payments

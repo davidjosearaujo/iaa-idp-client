@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h3>Accounts</h3>
+    {% for account in accounts.accounts %}
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Balance</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ account.balance }} </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                    <div class="row no-gutters align-items-center py-2">
+                        <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            IBAN</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ account.iban }} </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-9 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-info">Movements</h6>
+            </div>
+            <div class="card-body">
+                {% for movement in account.movements %}
+                    {% if movement.iban_to == account.iban %}
+                    <div class="card border-left-success shadow">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col">
+                                    <div class="h6 mb-0 font-weight-bold"> {{ movement.execution_date }} - {{ movement.amount }} $ from {{ movement.iban_from }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="card border-left-danger shadow">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col">
+                                    <div class="h6 mb-0 font-weight-bold"> {{ movement.execution_date }} - {{ movement.amount }} $ to {{ movement.iban_to }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    </div>
+    {% endfor %}
+    <h3>Loans</h3>
+    <div class="row">
+    {% for loan in loans %}
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Amount</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.total_value }} $ </div>
+                        </div>
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Paid </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.paid_value }} $</div>
+                        </div>
+                    </div>
+                    <div class="row no-gutters align-items-center py-2">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Interest rate</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.interest_rate }} % </div>
+                        </div>
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Type</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.rate_type }} </div>
+                        </div>
+                    </div>
+                    <div class="row no-gutters align-items-center py-2">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Payments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.n_payments }} </div>
+                        </div>
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Payments Done</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.n_payments_done }} </div>
+                        </div>
+                    </div>
+                    <div class="row no-gutters align-items-center py-2">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Creation date</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800"> {{ loan.creation_date }} </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+{% endblock %}

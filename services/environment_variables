@@ -1,0 +1,6 @@
+ACCOUNT_INFO_SERVER="rs-account-info:6001"
+LOANS_SERVER="rs-loans:6002"
+PAYMENTS_SERVER="rs-payments:6003"
+IDP="http://idp:5000"
+SQLALCHEMY_DATABASE_URI="sqlite:///database.db"
+SECRET_KEY="secret"

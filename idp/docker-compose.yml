@@ -1,0 +1,17 @@
+services:
+  idp:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - DISPLAY=${DISPLAY}
+    env_file:
+      - environment_variables
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    networks:
+      - iaa_network
+
+networks:
+  iaa_network:
+    external: true

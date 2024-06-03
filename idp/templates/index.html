@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="py-3 py-md-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5 col-xxl-4">
+        <div class="card border border-light-subtle rounded-3 shadow-sm">
+          <div class="card-body p-3 p-md-4 p-xl-5">
+            <div class="text-center mb-3">
+              <h1>IdP</h1>
+            </div>
+            {% if user %}
+            <h4>Hi, {{ user }} !</h4>
+            <div class="row">
+              <div class="col-12">
+                <a href="logout" style="text-decoration: none;">
+                  <button class="btn btn-primary btn-lg btn-block">Logout</button>
+                </a>
+              </div>
+            </div>
+
+            {% endif %}
+
+            {% if auth_type == "password" %}
+            <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Sign in to your account</h2>
+            {% elif auth_type == "eotp" %}
+            <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Enter One-Time Code that was sent to your email
+            </h2>
+            {% elif auth_type == "totp" or auth_type == "hotp" %}
+            <h2 class="fs-6 fw-normal text-center text-secondary mb-4">Enter One-Time Password available on your
+              authentication app</h2>
+            {% endif %}
+
+            {% if error_msg %}
+            <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
+              {{ error_msg }}
+            </div>
+            {% endif %}
+            {% if success_msg %}
+            <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
+              {{ success_msg }}
+            </div>
+            {% endif %}
+
+            {% if not user %}
+            {% if auth_type == "cc" %}
+            <div class="col-12">
+              <center>
+                Please insert your Portuguese Citizen Card in the smart card reader. When your ready click the button
+                bellow within 1 minute
+              </center>
+              <div class="col-12">
+                <div class="d-grid my-3">
+                  <button class="btn btn-primary btn-lg" id="submitButton">
+                    Check my CC
+                  </button>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% if auth_type != "cc" %}
+            <form action="" method="post">
+              <div class="row gy-2 overflow-hidden">
+                {% if auth_type == "password" %}
+                <div class="col-12">
+                  <div class="form-floating mb-3">
+                    <input type="email" class="form-control" name="email" id="email" placeholder="name@example.com"
+                      required>
+                    <label for="email" class="form-label">Email</label>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <div class="form-floating mb-3">
+                    <input type="password" class="form-control" name="password" id="password" value=""
+                      placeholder="Password" required>
+                    <label for="password" class="form-label">Password</label>
+                  </div>
+                </div>
+                {% elif auth_type == "eotp" %}
+                <div class="col-12">
+                  <div class="form-floating mb-3">
+                    <input type="number" min="100000" max="999999" class="form-control" name="otp" id="otp"
+                      placeholder="One-Time Code" required>
+                    <label for="otp" class="form-label">One-Time Code</label>
+                  </div>
+                </div>
+                {% elif auth_type == "totp" or auth_type == "hotp" %}
+                <div class="col-12">
+                  <div class="form-floating mb-3">
+                    <input type="number" min="000000" max="999999" class="form-control" name="otp" id="otp"
+                      placeholder="One-Time Code" required>
+                    <label for="otp" class="form-label">One-Time Password</label>
+                  </div>
+                </div>
+                {% endif %}
+                <div class="col-12">
+                  <div class="d-grid my-3">
+                    {% if auth_type == "password" %}
+                    <button class="btn btn-primary btn-lg" type="submit" id="submitButton" disabled="true">
+                      Log in
+                      {% elif auth_type == "eotp" or auth_type == "totp" or auth_type == "hotp" %}
+                      <button class="btn btn-primary btn-lg" type="submit">
+                        Verify
+                        {% endif %}
+                      </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+            {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if auth_type == "password"%}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const passwordField = document.getElementById('password');
+    const mail = document.getElementById('email');
+    const submitButton = document.getElementById('submitButton');
+    passwordField.addEventListener('input', function () {
+      if (passwordField.value != "" && mail.value != "") {
+        submitButton.disabled = false;
+      }
+    });
+    mail.addEventListener('input', function () {
+      if (passwordField.value != "" && mail.value != "") {
+        submitButton.disabled = false;
+      }
+    });
+  });
+</script>
+{% endif %}
+
+{% if auth_type == "cc" %}
+<script>
+  function makeCCRequest() {
+    const challenge = "{{ challenge }}";
+    const token = "{{ token }}";
+
+    fetch('http://127.0.0.1:6004/sign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      },
+      body: JSON.stringify({ message: challenge })
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Create a form dynamically
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.href;
+
+        // Add data from the response to the form
+        for (const key in data) {
+          if (data.hasOwnProperty(key)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data[key];
+            form.appendChild(input);
+          }
+        }
+
+        // Append the form to the body and submit it
+        document.body.appendChild(form);
+        form.submit();
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
+  }
+
+  document.getElementById('submitButton').addEventListener('click', makeCCRequest);
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,6 @@
+SECRET_KEY="secret"
+SQLALCHEMY_DATABASE_URI="sqlite:///db.sqlite"
+AUTHLIB_INSECURE_TRANSPORT=true
+CLIENT_EMAIL="your-email@xpto.com"
+OFFICER_EMAIL="your-email@xpto.com"
+MANAGER_EMAIL="your-email@xpto.com"

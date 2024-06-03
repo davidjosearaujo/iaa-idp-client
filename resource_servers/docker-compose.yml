@@ -1,0 +1,36 @@
+services:
+  rs-account-info:
+    build: ./account_info
+    ports:
+      - "6001:6001"
+    environment:
+      - FLASK_ARGS=--host=0.0.0.0 --debug --port 6001
+    env_file:
+      - environment_variables
+    networks:
+      - iaa_network
+  rs-loans:
+    build: ./loans
+    ports:
+      - "6002:6002"
+    environment:
+      - FLASK_ARGS=--host=0.0.0.0 --debug --port 6002
+    env_file:
+      - environment_variables
+    networks:
+      - iaa_network
+  rs-payments:
+    build: ./payments
+    ports:
+      - "6003:6003"
+    environment:
+      - FLASK_ARGS=--host=0.0.0.0 --debug --port 6003
+    env_file:
+      - environment_variables
+    networks:
+      - iaa_network
+  
+networks:
+  iaa_network:
+    external: true
+  

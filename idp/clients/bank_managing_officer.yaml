@@ -1,0 +1,22 @@
+name: "Bank Managing for officers"
+client_id: bbbbbbbbbbbbbbbbbbbbbbbb
+client_secret: BkcHH9B4CX0IdrJwofdMAIf0gMoPjdykvPzINW1gPZzDxtHt
+uri: http://127.0.0.1:5006/
+redirect_uris: 
+  - http://127.0.0.1:5006
+auth:
+  # mandatory authentication step
+  levels:
+    - password
+    - cc
+  
+  # condition authentication step
+  limit-condition:
+    key: cc
+    limit: weeks=1
+    behavior: eotp
+      
+token_lifetime: 14400 # seconds (4 hours)
+authorization:
+  - 1 # access accounts
+  - 2 # access loans
