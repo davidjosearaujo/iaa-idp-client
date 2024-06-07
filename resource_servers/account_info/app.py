@@ -37,11 +37,8 @@ if not os.path.exists("instance/database.db"):
     with app.app_context():
         db.create_all()
         dummy_accounts = [
-            {"user_email": "client@xpto.com", "iban": "PT50123456789012345678901"},
-            {
-                "user_email": os.environ["CLIENT_EMAIL"],
-                "iban": "PT50183456711012341178901",
-            },
+            {"user_email": os.environ["CLIENT_EMAIL"], "iban": "PT50123456789012345678901"},
+            {"user_email": "client@xpto.com","iban": "PT50183456711012341178901"},
         ]
         for user_data in dummy_accounts:
             user = Account(**user_data)
