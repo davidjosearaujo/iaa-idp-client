@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export EMAIL=${EMAIL:-"your-email@xpto.com"}
+# These three emails MUST be different from each other!!
+export CLIENT_EMAIL=${CLIENT_EMAIL:-"client-email@xpto.com"}
+export OFFICER_EMAIL=${OFFICER_EMAIL:-"officer-email@xpto.com"}
+export MANAGER_EMAIL=${MANAGER_EMAIL:-"manager-email@xpto.com"}
 
-sed -i "s/your-email@xpto.com/$EMAIL/g" ./idp/environment_variables
-sed -i "s/your-email@xpto.com/$EMAIL/g" ./resource_servers/environment_variables
+sed -i "s/client-email@xpto.com/$CLIENT_EMAIL/g" ./idp/environment_variables
+sed -i "s/officer-email@xpto.com/$OFFICER_EMAIL/g" ./idp/environment_variables
+sed -i "s/manager-email@xpto.com/$MANAGER_EMAIL/g" ./idp/environment_variables
+
+sed -i "s/client-email@xpto.com/$CLIENT_EMAIL/g" ./resource_servers/environment_variables
 
 echo "[+] Creating network..."
 docker network create iaa_network >> /dev/null
