@@ -50,6 +50,10 @@ Also, when the IdP first starts up, three default users are generated but not se
 
 For you to **fully launch and interact with the service**, you can. from the root of the project, run the following commands:
 ```bash
-export EMAIL="<your-email>"
+export CLIENT_EMAIL="<your-client-email>"
+export OFFICER_EMAIL="<your-officer-email>"
+export MANAGER_EMAIL="<your-manager-email>"
 ./run.sh
 ```
+
+Note that the three email **MUST be different from each other**!
