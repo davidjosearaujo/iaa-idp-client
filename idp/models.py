@@ -223,12 +223,17 @@ class Context(db.Model):
         return levels[(levels.index(login_current_step) + 1) % len(levels)]
 
     @staticmethod
-    def next_authentication_step(user: User, current_ip: str, client_id: str):
+    def get_behavior(client_id: str):
+        client = OAuth2Client.query.filter(OAuth2Client.client_id == client_id).first()
+        return json.loads(client.client_metadata["user_auth_method"])[
+            "limit-condition"
+        ]["behavior"]
+
+    @staticmethod
+    def get_levels(user: User, current_ip: str, client_id: str):
         # Get client authentication information
         client = OAuth2Client.query.filter(OAuth2Client.client_id == client_id).first()
-        levels = json.loads(client.client_metadata["user_auth_method"])["levels"] + [
-            "in"
-        ]
+        levels = json.loads(client.client_metadata["user_auth_method"])["levels"]
         conditions = json.loads(client.client_metadata["user_auth_method"])[
             "limit-condition"
         ]
@@ -242,21 +247,21 @@ class Context(db.Model):
             return levels
 
         known_ips = (
-            Context.query.filter(Context.user_id == User.id)
+            Context.query.filter(
+                (Context.user_id == User.id) | (Context.user_id == None)
+            )
             .with_entities(Context.ip)
             .distinct(Context.ip)
             .all()
         )
 
-        if current_ip not in known_ips:
-            user.login_current_step = Context.get_next_level(
-                user.login_current_step, levels
-            )
+        if current_ip not in known_ips and user.login_current_step == "in":
+            user.login_current_step = conditions["behavior"]
             db.session.commit()
             return levels
 
         flow = getattr(Context, user.role + "_flow")
-        flow(user, conditions, levels)
+        flow(user, conditions)
 
         return levels
 
@@ -286,18 +291,28 @@ class Context(db.Model):
             db.session.commit()
             return
 
-        amount_cc_pass_week = (
+        amount_key_pass_week = (
             Context.query.filter(
                 Context.user_id == User.id,
-                Context.method == "cc",
+                Context.method == conditions["key"],
                 Context.timestamp
                 > datetime.datetime.now()
                 - eval("datetime.timedelta(" + conditions["limit"] + ")"),
             )
-            .with_entities(getattr(Context, conditions["key"]))
+            .with_entities(Context.method)
             .count()
         )
-        if amount_cc_pass_week == 0:
+
+        amount_key_total = (
+            Context.query.filter(
+                Context.user_id == User.id,
+                Context.method == conditions["key"],
+            )
+            .with_entities(Context.method)
+            .count()
+        )
+
+        if amount_key_pass_week == 0 and amount_key_total > 0:
             user.login_current_step = conditions["behavior"]
             db.session.commit()
 
@@ -321,9 +336,19 @@ class Context(db.Model):
                 > datetime.datetime.now()
                 - eval("datetime.timedelta(" + conditions["limit"] + ")"),
             )
-            .with_entities(getattr(Context, conditions["key"]))
+            .with_entities(Context.method)
             .count()
         )
-        if amount_key_has_failed > 1:
+
+        amount_key_total = (
+            Context.query.filter(
+                Context.user_id == User.id,
+                Context.method == conditions["key"],
+            )
+            .with_entities(Context.method)
+            .count()
+        )
+
+        if amount_key_has_failed > 1 and amount_key_total > 0:
             user.login_current_step = conditions["behavior"]
             db.session.commit()

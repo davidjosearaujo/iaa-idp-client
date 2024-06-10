@@ -70,6 +70,8 @@ def set_client(client_config: dict, client_id: str):
         client_id_issued_at=client_id_issued_at,
     )
 
+    client_config["auth"]["levels"].extend(["in"])
+
     client_metadata: dict = {
         "client_name": client_config["name"],
         "client_uri": client_config["uri"],
@@ -118,14 +120,14 @@ def setup_database(app: Flask) -> None:
                 },
                 {
                     "email": f"{os.environ.get('OFFICER_EMAIL')}",
-                    "role": "client",
+                    "role": "officer",
                     "registration_code": registration_code[1],
                     "totp_secret": totp_secret[1],
                     "client_id": "bbbbbbbbbbbbbbbbbbbbbbbb",
                 },
                 {
                     "email": f"{os.environ.get('MANAGER_EMAIL')}",
-                    "role": "client",
+                    "role": "manager",
                     "registration_code": registration_code[2],
                     "totp_secret": totp_secret[2],
                     "client_id": "cccccccccccccccccccccccc",

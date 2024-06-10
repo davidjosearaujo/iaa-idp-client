@@ -132,7 +132,7 @@ def authenticate_and_authorize(func):
                 return func(*args, **kwargs)
         except:
             traceback.print_exc()
-            return render_template("500.html"), 500
+            return "Internal error", 500
 
     return wrapper
 
@@ -143,7 +143,7 @@ def home(token, user_info):
     try:
         return f"Hi, {user_info.get('email')}. This is the Bank Managing Service for managers..."
     except:
-        return render_template("500.html"), 500
+        return "Internal error", 500
 
 if __name__ == "__main__":
     app.run()

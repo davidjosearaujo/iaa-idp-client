@@ -17,38 +17,14 @@ import oauth
 bp = Blueprint("home", __name__)
 
 
-# auth methods to be supported:
-# - password    (done)
-# - HOTP        (done)
-# - TOTP        (done)
-# - email OTP   (done)
-# - CC
-
-# context (and usage) to be supported:
-# - User ip history
-#   - if it changed from the last login, ip changed country or ip in country
-# - Login history
-#   - based on the amount of logins in the past x hours
-# - Failed logins history
-#   - if it goes over a given number in the past x hours
-# - Login timestamp
-#   - month and hour number (intervals can be used)
-
-
 def current_user():
     if "id" in session and session["id"]:
-        if session["ts"] + 60 > int(time.time()):  # session lasts for 1 minute
+        if session.get("ts") and session["ts"] + 120 > int(
+            time.time()
+        ):  # session lasts for 1 minute
             uid: int = session["id"]
             return User.query.get(uid)
     return None
-
-
-# something like this will be stored in the db
-# instead of auth method we could put the conditions
-# this can be splitted in a dict with the different stages, the mandatory
-# and the conditional ones
-# "eotp"
-# login_steps = ["password", "cc", "in"]  # hardcoded login flow !!!!!
 
 
 @bp.route("/", methods=["GET", "POST"])
@@ -66,7 +42,7 @@ def home():
 
         user: User = current_user()
 
-        levels = Context.next_authentication_step(
+        levels = Context.get_levels(
             user=user,
             current_ip=request.remote_addr,
             client_id=request.args.get("client_id", None, type=str),
@@ -110,6 +86,7 @@ def home():
                 if not OTP.verify_otp(user.id, request.form.get("otp")):
                     user.login_current_step = levels[0]
                     current_context.login = 1
+                    current_context.method = user.login_current_step
                     db.session.add(current_context)
                     db.session.commit()
                     session["id"] = None
@@ -128,6 +105,7 @@ def home():
                 if not check:
                     user.login_current_step = levels[0]
                     current_context.login = 1
+                    current_context.method = user.login_current_step
                     db.session.add(current_context)
                     db.session.commit()
                     session["id"] = None
@@ -146,6 +124,7 @@ def home():
                 if not check:
                     user.login_current_step = levels[0]
                     current_context.login = 1
+                    current_context.method = user.login_current_step
                     db.session.add(current_context)
                     db.session.commit()
                     session["id"] = None
@@ -158,6 +137,7 @@ def home():
 
             elif user.login_current_step == "invalid":
                 current_context.login = 1
+                current_context.method = user.login_current_step
                 db.session.add(current_context)
                 db.session.commit()
                 return render_template(
@@ -166,27 +146,37 @@ def home():
                     error_msg="Invalid Login",
                 )
 
-            db.session.commit()
             next_page_url: str = request.args.get("next")
             params = {
                 "response_type": request.args.get("response_type"),
                 "client_id": request.args.get("client_id"),
                 "scope": request.args.get("scope"),
             }
-            next_page: str = next_page_url + '?' + urllib.parse.urlencode(params)
+            next_page: str = next_page_url + "?" + urllib.parse.urlencode(params)
 
-            if Context.get_next_level(user.login_current_step, levels) == "in":
+            if (
+                user.login_current_step in levels
+                and Context.get_next_level(user.login_current_step, levels) == "in"
+            ):
                 user.login_current_step = levels[0]
                 current_context.method = levels[0]
+                current_context.user_id = user.id
                 db.session.add(current_context)
                 db.session.commit()
             else:
-                user.login_current_step = Context.get_next_level(
-                    user.login_current_step, levels
+                current_context.method = user.login_current_step
+                db.session.add(current_context)
+                db.session.commit()
+
+                user.login_current_step = (
+                    "in"
+                    if user.login_current_step
+                    == Context.get_behavior(
+                        request.args.get("client_id", None, type=str)
+                    )
+                    else Context.get_next_level(user.login_current_step, levels)
                 )
                 db.session.commit()
-                if user.login_current_step == "eotp":
-                    user.gen_email_otp()
                 return redirect(request.url) if next_page else redirect(f"/")
 
             if next_page:
@@ -195,9 +185,6 @@ def home():
             return redirect("/")
 
         if user:
-            current_context.method = user.login_current_step
-            db.session.add(current_context)
-            db.session.commit()
             if user.login_current_step == levels[0]:
                 return render_template("index.html", user=user.email)
             if user.login_current_step == "cc":
@@ -210,10 +197,11 @@ def home():
                     challenge=user.cc_challenge,
                     token=oauth.create_cc_token(user),
                 )
+            elif user.login_current_step == "eotp":
+                user.gen_email_otp()
+
             return render_template("index.html", auth_type=user.login_current_step)
         else:
-            db.session.add(current_context)
-            db.session.commit()
             return render_template("index.html", auth_type="password")
     except:
         traceback.print_exc()
@@ -264,19 +252,6 @@ def issue_token():
         return jsonify(success=False), 500
 
 
-# todo:
-# revoke the access token
-# JWT token revocation is not trivial
-# the tokens are self contained but there's way with extra communication
-# P.S. : One alternative is just to limit the refresh of the token after the revoke
-@bp.route("/oauth/revoke", methods=["POST"])
-def revoke_token():
-    try:
-        return authorization.create_endpoint_response("revocation")
-    except:
-        return jsonify(success=False), 500
-
-
 @bp.route("/register", methods=["POST", "GET"])
 def register():
     try:
@@ -304,7 +279,21 @@ def register():
                 client = OAuth2Client.query.filter_by(client_id=user.client_id).first()
                 levels = json.loads(client.client_metadata["user_auth_method"])[
                     "levels"
-                ] + ["in"]
+                ]
+
+                if len(levels) > 1:
+                    levels.insert(
+                        len(levels) - 1,
+                        json.loads(client.client_metadata["user_auth_method"])[
+                            "limit-condition"
+                        ]["behavior"],
+                    )
+                else:
+                    levels += [
+                        json.loads(client.client_metadata["user_auth_method"])[
+                            "limit-condition"
+                        ]["behavior"],
+                    ]
             else:
                 return render_template("index.html", error_msg="Invalid Request"), 400
 
@@ -379,9 +368,20 @@ def register():
 
         user = User.query.filter_by(registration_code=registration_code).first()
         client = OAuth2Client.query.filter_by(client_id=user.client_id).first()
-        levels = json.loads(client.client_metadata["user_auth_method"])["levels"] + [
-            "in"
-        ]
+        levels = json.loads(client.client_metadata["user_auth_method"])["levels"]
+        if len(levels) > 1:
+            levels.insert(
+                len(levels) - 1,
+                json.loads(client.client_metadata["user_auth_method"])[
+                    "limit-condition"
+                ]["behavior"],
+            )
+        else:
+            levels += [
+                json.loads(client.client_metadata["user_auth_method"])[
+                    "limit-condition"
+                ]["behavior"],
+            ]
 
         if user.registration_current_step == "password":
             password = request.form.get("password")
@@ -400,7 +400,7 @@ def register():
                 user.registration_current_step, levels
             )
             db.session.commit()
-            
+
         elif user.registration_current_step == "cc":
             cc_certificate = request.form.get("certificate")
             challenge_response = request.form.get("signature")

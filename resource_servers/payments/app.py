@@ -60,7 +60,7 @@ if not os.path.exists("instance/database.db"):
             {
                 "iban": "PT50183456711012341178901",
                 "balance": 12345.67,
-                "client_email": "client_2@xpto.com",
+                "client_email": "client@xpto.com",
             },
         ]
         dummy_movements = [
